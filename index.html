@@ -8,7 +8,6 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#185fa5">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.44.0/iconfont/tabler-icons.min.css">
 <style>
   :root {
     --bg: #f7f6f2; --surface: #ffffff; --surface-1: #f1efe8;
@@ -35,7 +34,9 @@
   .sub { color: var(--text-secondary); font-size: 13px; margin: 0 0 8px; }
   .card { background: var(--surface); border-radius: 12px; border: 0.5px solid var(--border); padding: 16px 20px; }
   .card-title { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-weight: 500; font-size: 15px; }
-  .card-title i { font-size: 18px; color: var(--accent); }
+  .card-title i { font-size: 18px; color: var(--accent); font-style: normal; }
+  .icon { font-style: normal; display: inline-block; }
+  .del.icon { font-size: 15px; }
   .row { display: flex; gap: 10px; padding: 10px; background: var(--surface-1); border-radius: var(--radius); }
   .row + .row { margin-top: 8px; }
   input, button {
@@ -97,6 +98,9 @@
   .quickadd-row { display: grid; grid-template-columns: 1.4fr 0.7fr 0.5fr; gap: 6px; margin-top: 8px; }
   .quickadd-row.fixed3 { grid-template-columns: 1.2fr 0.7fr 0.7fr 0.5fr; }
   .quickadd-row button { padding: 0; }
+  .time-field { display: flex; flex-direction: column; gap: 2px; }
+  .time-field label { font-size: 11px; color: var(--text-muted); padding-left: 2px; }
+  .time-field input { width: 100%; }
   .chat-log { display: flex; flex-direction: column; gap: 8px; max-height: 320px; overflow-y: auto; margin-bottom: 10px; }
   .chat-msg { padding: 8px 10px; border-radius: var(--radius); font-size: 13px; max-width: 88%; white-space: pre-wrap; }
   .chat-msg.user { align-self: flex-end; background: var(--accent-bg); }
@@ -133,38 +137,38 @@
   </div>
 
   <div class="card">
-    <div class="card-title"><i class="ti ti-key"></i>Claude (Anthropic) AI 연결</div>
+    <div class="card-title"><i class="icon">🔑</i>Claude (Anthropic) AI 연결</div>
     <div class="key-row">
       <input id="api-key" type="password" placeholder="Anthropic API 키를 입력하세요 (sk-ant-...)">
-      <button onclick="saveKey()"><i class="ti ti-device-floppy"></i>저장</button>
-      <button onclick="clearKey()"><i class="ti ti-trash"></i>삭제</button>
+      <button onclick="saveKey()"><i class="icon">💾</i>저장</button>
+      <button onclick="clearKey()"><i class="icon">🗑</i>삭제</button>
     </div>
     <div class="muted"><span id="key-status"><span class="status-dot off"></span>설정 필요</span> · API 키는 이 브라우저에만 저장되며 외부로 전송되지 않습니다. 키가 없다면 <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--accent)">Anthropic Console</a>에서 발급받을 수 있습니다.</div>
   </div>
 
   <div class="card">
-    <div class="card-title"><i class="ti ti-news"></i>오늘의 브리핑</div>
-    <button class="full primary" id="briefing-btn" onclick="generateBriefing()"><i class="ti ti-sparkles" id="briefing-icon"></i><span id="briefing-btn-label">오늘 브리핑 생성</span></button>
+    <div class="card-title"><i class="icon">📰</i>오늘의 브리핑</div>
+    <button class="full primary" id="briefing-btn" onclick="generateBriefing()"><i class="icon" id="briefing-icon">✨</i><span id="briefing-btn-label">오늘 브리핑 생성</span></button>
     <div id="briefing-feed" style="margin-top:12px"></div>
     <div id="briefing-error"></div>
   </div>
 
   <div class="card">
-    <div class="card-title"><i class="ti ti-message-chatbot"></i>AI 비서와 대화하기</div>
+    <div class="card-title"><i class="icon">💬</i>AI 비서와 대화하기</div>
     <p class="muted" style="margin-top:-6px">"내일 오후 2시부터 4시까지 알바 있어", "목요일까지 과제 3시간짜리 있어" 처럼 편하게 말하면 자동으로 일정에 반영돼요. 뉴스나 시황을 물어봐도 답해줘요.</p>
     <div class="chat-log" id="chat-log"></div>
     <div class="chat-input-row">
       <input id="chat-input" placeholder="예: 이번 주 금요일 3시간짜리 발표 준비 있어" onkeydown="if(event.key==='Enter') sendChat()">
-      <button class="primary" id="chat-send-btn" onclick="sendChat()"><i class="ti ti-send" id="chat-send-icon"></i></button>
+      <button class="primary" id="chat-send-btn" onclick="sendChat()"><i class="icon" id="chat-send-icon">➤</i></button>
     </div>
   </div>
 
   <div class="card">
-    <div class="card-title"><i class="ti ti-calendar"></i>캘린더 (할일 &amp; 고정 일정)</div>
+    <div class="card-title"><i class="icon">📅</i>캘린더 (할일 &amp; 고정 일정)</div>
     <div class="cal-header">
-      <button onclick="prevMonth()"><i class="ti ti-chevron-left"></i></button>
+      <button onclick="prevMonth()"><i class="icon">‹</i></button>
       <span class="cal-label" id="cal-label"></span>
-      <button onclick="nextMonth()"><i class="ti ti-chevron-right"></i></button>
+      <button onclick="nextMonth()"><i class="icon">›</i></button>
     </div>
     <div class="cal-grid" id="cal-grid"></div>
 
@@ -175,20 +179,20 @@
       <div class="quickadd-row">
         <input id="day-task-name" placeholder="할일 이름">
         <input id="day-task-hours" type="number" min="0.5" step="0.5" placeholder="소요시간(h)">
-        <button onclick="addDayTask()"><i class="ti ti-plus"></i></button>
+        <button onclick="addDayTask()"><i class="icon">+</i></button>
       </div>
       <div class="quickadd-row fixed3">
         <input id="day-fixed-name" placeholder="고정 일정 이름">
-        <input id="day-fixed-start" type="time">
-        <input id="day-fixed-end" type="time">
-        <button onclick="addDayFixed()"><i class="ti ti-plus"></i></button>
+        <div class="time-field"><label>시작</label><input id="day-fixed-start" type="time"></div>
+        <div class="time-field"><label>종료</label><input id="day-fixed-end" type="time"></div>
+        <button onclick="addDayFixed()"><i class="icon">+</i></button>
       </div>
     </div>
   </div>
 
   <div class="card">
-    <div class="card-title"><i class="ti ti-list-check"></i>오늘의 추천 시간표</div>
-    <button class="full" onclick="renderSchedule()" style="margin-bottom:12px"><i class="ti ti-wand"></i>추천 시간표 계산</button>
+    <div class="card-title"><i class="icon">📋</i>오늘의 추천 시간표</div>
+    <button class="full" onclick="renderSchedule()" style="margin-bottom:12px"><i class="icon">🪄</i>추천 시간표 계산</button>
     <div id="schedule-out" style="display:flex; flex-direction:column; gap:6px"></div>
   </div>
 </div>
@@ -296,12 +300,14 @@ function mdToHtml(text){
 
 function setBriefingLoading(loading){
   document.getElementById('briefing-btn').disabled = loading;
-  document.getElementById('briefing-icon').className = loading ? 'ti ti-loader-2 spin' : 'ti ti-sparkles';
+  const briefingIconEl = document.getElementById('briefing-icon');
+  briefingIconEl.className = loading ? 'icon spin' : 'icon';
+  briefingIconEl.textContent = loading ? '⏳' : '✨';
   document.getElementById('briefing-btn-label').textContent = loading ? '생성 중...' : '오늘 브리핑 생성';
 }
 
 function showBriefingError(msg){
-  document.getElementById('briefing-error').innerHTML = `<div class="err-box"><i class="ti ti-alert-circle"></i> ${msg}</div>`;
+  document.getElementById('briefing-error').innerHTML = `<div class="err-box"><i class="icon">⚠️</i> ${msg}</div>`;
 }
 
 function renderBriefing(text, sources, timestamp){
@@ -463,12 +469,12 @@ function renderDayPanel(){
     <div class="item">
       <span>${f.name}</span>
       <span style="color:var(--text-secondary)">${f.start}-${f.end}</span>
-      <i class="ti ti-x del" onclick="removeFixed(${f.id})"></i>
+      <i class="icon del" onclick="removeFixed(${f.id})">×</i>
     </div>`).join('') + dTasks.map(t => `
     <div class="item">
       <span>${t.name}</span>
       <span style="color:var(--text-secondary)">${t.hours}h</span>
-      <i class="ti ti-x del" onclick="removeTask(${t.id})"></i>
+      <i class="icon del" onclick="removeTask(${t.id})">×</i>
     </div>`).join('');
 }
 
@@ -560,7 +566,9 @@ function loadChatHistory(){
 
 function setChatLoading(loading){
   document.getElementById('chat-send-btn').disabled = loading;
-  document.getElementById('chat-send-icon').className = loading ? 'ti ti-loader-2 spin' : 'ti ti-send';
+  const chatSendIconEl = document.getElementById('chat-send-icon');
+  chatSendIconEl.className = loading ? 'icon spin' : 'icon';
+  chatSendIconEl.textContent = loading ? '⏳' : '➤';
 }
 
 function handleFunctionCall(fc){

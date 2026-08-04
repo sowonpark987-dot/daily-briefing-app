@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>데일리 브리핑 & 일정 관리</title>
 <link rel="icon" type="image/png" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -32,11 +32,17 @@
   }
 
   /* ---------- Splash / greeting screen ---------- */
+  html, body { height: 100%; }
+  body.splash-active { overflow: hidden; }
   .splash {
-    height: 100vh; height: 100svh;
+    position: fixed; inset: 0; z-index: 1000;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    text-align: center; gap: 10px; padding: 24px; position: relative;
+    text-align: center; gap: 10px; padding: 24px;
+    background: var(--bg);
+    transition: transform 0.35s ease, opacity 0.35s ease;
+    touch-action: none;
   }
+  .splash.dismissed { transform: translateY(-100%); opacity: 0; pointer-events: none; }
   .splash-emoji { font-size: 56px; line-height: 1; }
   .splash-greeting { font-size: 26px; font-weight: 600; }
   .splash-date { font-size: 14px; color: var(--text-secondary); }
@@ -262,11 +268,36 @@ function renderSplash(){
 }
 renderSplash();
 
-function revealMain(){
-  document.getElementById('main-content').scrollIntoView({ behavior: 'smooth' });
+document.body.classList.add('splash-active');
+const splashEl = document.getElementById('splash');
+let splashDismissed = false;
+
+function dismissSplash(){
+  if(splashDismissed) return;
+  splashDismissed = true;
+  splashEl.classList.add('dismissed');
+  document.body.classList.remove('splash-active');
+  setTimeout(() => { splashEl.style.display = 'none'; }, 400);
 }
-document.getElementById('splash-hint').addEventListener('click', revealMain);
-document.getElementById('splash').addEventListener('click', revealMain);
+
+let touchStartY = null;
+splashEl.addEventListener('touchstart', e => { touchStartY = e.touches[0].clientY; }, { passive: true });
+splashEl.addEventListener('touchmove', e => {
+  if(touchStartY === null) return;
+  const dy = touchStartY - e.touches[0].clientY;
+  if(dy > 45) dismissSplash();
+}, { passive: true });
+splashEl.addEventListener('touchend', () => { touchStartY = null; });
+
+let mouseStartY = null;
+splashEl.addEventListener('mousedown', e => { mouseStartY = e.clientY; });
+splashEl.addEventListener('mouseup', e => {
+  if(mouseStartY !== null && mouseStartY - e.clientY > 45) dismissSplash();
+  mouseStartY = null;
+});
+
+splashEl.addEventListener('wheel', e => { if(e.deltaY < -10 || e.deltaY > 10) dismissSplash(); }, { passive: true });
+document.getElementById('splash-hint').addEventListener('click', dismissSplash);
 
 let idCounter = Date.now();
 function nextId(){ idCounter += 1; return idCounter; }

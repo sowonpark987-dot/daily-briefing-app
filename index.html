@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>데일리 브리핑 & 일정 관리</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='6' y='1' width='2.4' height='6' rx='1.2' fill='%23185fa5'/%3E%3Crect x='15.6' y='1' width='2.4' height='6' rx='1.2' fill='%23185fa5'/%3E%3Crect x='2' y='3.5' width='20' height='19' rx='3' fill='%23ffffff' stroke='%23185fa5' stroke-width='1.6'/%3E%3Crect x='2' y='3.5' width='20' height='6' rx='3' fill='%23185fa5'/%3E%3Crect x='5.3' y='13' width='3.4' height='3.4' rx='0.6' fill='%23185fa5'/%3E%3Crect x='10.3' y='13' width='3.4' height='3.4' rx='0.6' fill='%23185fa5'/%3E%3Crect x='15.3' y='13' width='3.4' height='3.4' rx='0.6' fill='%23185fa5'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.44.0/iconfont/tabler-icons.min.css">
+<style>
+  :root {
+    --bg: #f7f6f2; --surface: #ffffff; --surface-1: #f1efe8;
+    --text: #1c1c1a; --text-secondary: #5f5e5a; --text-muted: #8a8880;
+    --border: #e2e0d8; --accent: #185fa5; --accent-bg: #e6f1fb;
+    --danger: #a32d2d; --danger-bg: #fcebeb; --ok: #2d7a3e; --ok-bg: #e8f5ea; --radius: 8px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #17171a; --surface: #212024; --surface-1: #2a292d;
+      --text: #ececea; --text-secondary: #b4b2a9; --text-muted: #888780;
+      --border: #38373a; --accent: #85b7eb; --accent-bg: #0c447c;
+      --danger: #f09595; --danger-bg: #501313; --ok: #8fd19e; --ok-bg: #113a1a;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    padding: 24px 16px 60px; line-height: 1.6;
+  }
+  .wrap { max-width: 680px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+  h1 { font-size: 20px; font-weight: 500; margin: 0 0 4px; }
+  .sub { color: var(--text-secondary); font-size: 13px; margin: 0 0 8px; }
+  .card { background: var(--surface); border-radius: 12px; border: 0.5px solid var(--border); padding: 16px 20px; }
+  .card-title { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-weight: 500; font-size: 15px; }
+  .card-title i { font-size: 18px; color: var(--accent); }
+  .row { display: flex; gap: 10px; padding: 10px; background: var(--surface-1); border-radius: var(--radius); }
+  .row + .row { margin-top: 8px; }
+  input, button {
+    font-family: inherit; font-size: 13px; border-radius: var(--radius);
+    border: 0.5px solid var(--border); background: var(--surface); color: var(--text);
+    height: 36px; padding: 0 10px;
+  }
+  button { cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px; }
+  button:hover { background: var(--surface-1); }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+  button.primary:hover { opacity: 0.9; background: var(--accent); }
+  .grid3 { display: grid; grid-template-columns: 1.6fr 1fr 0.8fr; gap: 8px; margin-bottom: 8px; }
+  .grid4 { display: grid; grid-template-columns: 1.4fr 0.9fr 0.6fr 0.6fr; gap: 8px; margin-bottom: 8px; }
+  .full { width: 100%; }
+  .item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: var(--surface-1); border-radius: var(--radius); font-size: 13px; }
+  .item span:first-child { flex: 1; }
+  .item .del { cursor: pointer; color: var(--text-muted); }
+  .muted { font-size: 13px; color: var(--text-muted); }
+  .sched-row { display: flex; align-items: center; gap: 10px; padding: 10px; background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); }
+  .tag { font-size: 12px; padding: 2px 8px; border-radius: var(--radius); white-space: nowrap; }
+  .tag.urgent { background: var(--danger-bg); color: var(--danger); }
+  .tag.normal { background: var(--accent-bg); color: var(--accent); }
+  .tag.ok { background: var(--ok-bg); color: var(--ok); }
+  .key-row { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+  .key-row input { flex: 1; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+  .status-dot.on { background: var(--ok); }
+  .status-dot.off { background: var(--text-muted); }
+  .briefing-body { font-size: 13px; line-height: 1.7; }
+  .briefing-body h3 { font-size: 14px; margin: 14px 0 4px; color: var(--accent); }
+  .briefing-body h3:first-child { margin-top: 0; }
+  .briefing-body ul { margin: 4px 0; padding-left: 18px; }
+  .briefing-body p { margin: 4px 0; }
+  .sources { margin-top: 12px; padding-top: 10px; border-top: 0.5px solid var(--border); font-size: 12px; color: var(--text-muted); }
+  .sources a { color: var(--accent); text-decoration: none; }
+  .sources a:hover { text-decoration: underline; }
+  .spin { animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .err-box { background: var(--danger-bg); color: var(--danger); padding: 10px 12px; border-radius: var(--radius); font-size: 13px; margin-top: 10px; }
+  .timestamp { font-size: 12px; color: var(--text-muted); margin-top: 10px; }
+
+  .cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .cal-header button { width: 32px; padding: 0; }
+  .cal-label { font-size: 14px; font-weight: 500; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .cal-dow { text-align: center; font-size: 11px; color: var(--text-muted); padding: 4px 0; }
+  .cal-day { position: relative; aspect-ratio: 1/1; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 5px 2px 0; border-radius: 6px; cursor: pointer; font-size: 12px; background: var(--surface-1); border: 1px solid transparent; }
+  .cal-day:hover { background: var(--accent-bg); }
+  .cal-day.other-month { opacity: 0.35; }
+  .cal-day.today { border-color: var(--accent); }
+  .cal-day.selected { background: var(--accent-bg); font-weight: 600; }
+  .cal-day .dots { display: flex; gap: 2px; margin-top: 3px; height: 5px; }
+  .cal-day .dot { width: 5px; height: 5px; border-radius: 50%; }
+  .dot.fixed { background: var(--accent); }
+  .dot.task { background: var(--danger); }
+  .day-panel { margin-top: 14px; padding-top: 14px; border-top: 0.5px solid var(--border); }
+  .day-panel h4 { margin: 0 0 8px; font-size: 13px; font-weight: 500; }
+  .quickadd-row { display: grid; grid-template-columns: 1.4fr 0.7fr 0.5fr; gap: 6px; margin-top: 8px; }
+  .quickadd-row.fixed3 { grid-template-columns: 1.2fr 0.7fr 0.7fr 0.5fr; }
+  .quickadd-row button { padding: 0; }
+  .chat-log { display: flex; flex-direction: column; gap: 8px; max-height: 320px; overflow-y: auto; margin-bottom: 10px; }
+  .chat-msg { padding: 8px 10px; border-radius: var(--radius); font-size: 13px; max-width: 88%; white-space: pre-wrap; }
+  .chat-msg.user { align-self: flex-end; background: var(--accent-bg); }
+  .chat-msg.ai { align-self: flex-start; background: var(--surface-1); }
+  .chat-input-row { display: flex; gap: 8px; }
+  .chat-input-row input { flex: 1; }
+
+  @media (max-width: 480px) {
+    body { padding: 16px 10px 48px; }
+    .wrap { gap: 14px; }
+    .card { padding: 14px 12px; }
+    h1 { font-size: 18px; }
+    .card-title { font-size: 14px; }
+    input, button { font-size: 14px; }
+    .key-row { flex-wrap: wrap; }
+    .key-row input { min-width: 0; width: 100%; }
+    .cal-day { font-size: 11px; }
+    .cal-header button { width: 40px; height: 40px; }
+    .quickadd-row, .quickadd-row.fixed3 { grid-template-columns: 1fr; gap: 8px; }
+    .quickadd-row input, .quickadd-row button { width: 100%; height: 40px; }
+    .item .del { padding: 6px; font-size: 16px; }
+    .chat-input-row input { min-width: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div>
+    <h1>데일리 브리핑 &amp; 일정 관리</h1>
+    <p class="sub" id="today-label"></p>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><i class="ti ti-key"></i>Claude (Anthropic) AI 연결</div>
+    <div class="key-row">
+      <input id="api-key" type="password" placeholder="Anthropic API 키를 입력하세요 (sk-ant-...)">
+      <button onclick="saveKey()"><i class="ti ti-device-floppy"></i>저장</button>
+      <button onclick="clearKey()"><i class="ti ti-trash"></i>삭제</button>
+    </div>
+    <div class="muted"><span id="key-status"><span class="status-dot off"></span>설정 필요</span> · API 키는 이 브라우저에만 저장되며 외부로 전송되지 않습니다. 키가 없다면 <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--accent)">Anthropic Console</a>에서 발급받을 수 있습니다.</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><i class="ti ti-news"></i>오늘의 브리핑</div>
+    <button class="full primary" id="briefing-btn" onclick="generateBriefing()"><i class="ti ti-sparkles" id="briefing-icon"></i><span id="briefing-btn-label">오늘 브리핑 생성</span></button>
+    <div id="briefing-feed" style="margin-top:12px"></div>
+    <div id="briefing-error"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><i class="ti ti-message-chatbot"></i>AI 비서와 대화하기</div>
+    <p class="muted" style="margin-top:-6px">"내일 오후 2시부터 4시까지 알바 있어", "목요일까지 과제 3시간짜리 있어" 처럼 편하게 말하면 자동으로 일정에 반영돼요. 뉴스나 시황을 물어봐도 답해줘요.</p>
+    <div class="chat-log" id="chat-log"></div>
+    <div class="chat-input-row">
+      <input id="chat-input" placeholder="예: 이번 주 금요일 3시간짜리 발표 준비 있어" onkeydown="if(event.key==='Enter') sendChat()">
+      <button class="primary" id="chat-send-btn" onclick="sendChat()"><i class="ti ti-send" id="chat-send-icon"></i></button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><i class="ti ti-calendar"></i>캘린더 (할일 &amp; 고정 일정)</div>
+    <div class="cal-header">
+      <button onclick="prevMonth()"><i class="ti ti-chevron-left"></i></button>
+      <span class="cal-label" id="cal-label"></span>
+      <button onclick="nextMonth()"><i class="ti ti-chevron-right"></i></button>
+    </div>
+    <div class="cal-grid" id="cal-grid"></div>
+
+    <div class="day-panel">
+      <h4 id="day-label"></h4>
+      <div id="day-items"></div>
+
+      <div class="quickadd-row">
+        <input id="day-task-name" placeholder="할일 이름">
+        <input id="day-task-hours" type="number" min="0.5" step="0.5" placeholder="소요시간(h)">
+        <button onclick="addDayTask()"><i class="ti ti-plus"></i></button>
+      </div>
+      <div class="quickadd-row fixed3">
+        <input id="day-fixed-name" placeholder="고정 일정 이름 (알바 등)">
+        <input id="day-fixed-start" type="time">
+        <input id="day-fixed-end" type="time">
+        <button onclick="addDayFixed()"><i class="ti ti-plus"></i></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><i class="ti ti-list-check"></i>오늘의 추천 시간표</div>
+    <button class="full" onclick="renderSchedule()" style="margin-bottom:12px"><i class="ti ti-wand"></i>추천 시간표 계산</button>
+    <div id="schedule-out" style="display:flex; flex-direction:column; gap:6px"></div>
+  </div>
+</div>
+
+<script>
+let tasks = JSON.parse(localStorage.getItem('sched-tasks') || '[]');
+let fixed = JSON.parse(localStorage.getItem('sched-fixed') || '[]');
+
+const NY_TZ = 'America/New_York';
+function nowInNY(){ return new Date(new Date().toLocaleString('en-US', { timeZone: NY_TZ })); }
+function todayStr(){
+  const d = nowInNY();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function updateNYClock(){
+  const fmt = new Intl.DateTimeFormat('ko-KR', {
+    timeZone: NY_TZ, year: 'numeric', month: 'long', day: 'numeric', weekday: 'short',
+    hour: '2-digit', minute: '2-digit', hour12: true
+  });
+  document.getElementById('today-label').textContent = `${fmt.format(new Date())} · 뉴욕 현지시간`;
+}
+updateNYClock();
+setInterval(updateNYClock, 30000);
+
+let idCounter = Date.now();
+function nextId(){ idCounter += 1; return idCounter; }
+
+/* ---------- Anthropic API key handling ---------- */
+const KEY_STORAGE = 'anthropic-api-key';
+
+function getKey(){ return localStorage.getItem(KEY_STORAGE) || ''; }
+
+function refreshKeyStatus(){
+  const has = !!getKey();
+  document.getElementById('key-status').innerHTML =
+    `<span class="status-dot ${has ? 'on' : 'off'}"></span>${has ? '연결됨' : '설정 필요'}`;
+  document.getElementById('api-key').value = has ? getKey() : '';
+  document.getElementById('api-key').placeholder = has ? '키가 저장되어 있습니다' : 'Anthropic API 키를 입력하세요 (sk-ant-...)';
+}
+function saveKey(){
+  const v = document.getElementById('api-key').value.trim();
+  if(!v) return;
+  localStorage.setItem(KEY_STORAGE, v);
+  refreshKeyStatus();
+}
+function clearKey(){
+  localStorage.removeItem(KEY_STORAGE);
+  refreshKeyStatus();
+}
+refreshKeyStatus();
+
+const CLAUDE_MODEL = 'claude-sonnet-5';
+
+async function callClaude({ apiKey, system, messages, tools, maxTokens }){
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: CLAUDE_MODEL,
+      max_tokens: maxTokens || 1024,
+      ...(system ? { system } : {}),
+      messages,
+      ...(tools ? { tools } : {})
+    })
+  });
+  if(!resp.ok){
+    const errBody = await resp.json().catch(() => null);
+    throw new Error(errBody?.error?.message || `요청 실패 (HTTP ${resp.status})`);
+  }
+  return resp.json();
+}
+
+/* ---------- Claude-powered briefing ---------- */
+const BRIEFING_CACHE_KEY = 'claude-briefing-cache';
+
+function mdToHtml(text){
+  const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const lines = text.split('\n');
+  let html = '', inList = false;
+  const closeList = () => { if(inList){ html += '</ul>'; inList = false; } };
+  for(let raw of lines){
+    const line = raw.trim();
+    if(!line){ closeList(); continue; }
+    let m;
+    if((m = line.match(/^#{1,3}\s+(.*)/))){
+      closeList();
+      html += `<h3>${esc(m[1]).replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')}</h3>`;
+    } else if((m = line.match(/^[-*]\s+(.*)/))){
+      if(!inList){ html += '<ul>'; inList = true; }
+      html += `<li>${esc(m[1]).replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')}</li>`;
+    } else {
+      closeList();
+      html += `<p>${esc(line).replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')}</p>`;
+    }
+  }
+  closeList();
+  return html;
+}
+
+function setBriefingLoading(loading){
+  document.getElementById('briefing-btn').disabled = loading;
+  document.getElementById('briefing-icon').className = loading ? 'ti ti-loader-2 spin' : 'ti ti-sparkles';
+  document.getElementById('briefing-btn-label').textContent = loading ? '생성 중...' : '오늘 브리핑 생성';
+}
+
+function showBriefingError(msg){
+  document.getElementById('briefing-error').innerHTML = `<div class="err-box"><i class="ti ti-alert-circle"></i> ${msg}</div>`;
+}
+
+function renderBriefing(text, sources, timestamp){
+  document.getElementById('briefing-error').innerHTML = '';
+  let html = `<div class="briefing-body">${mdToHtml(text)}</div>`;
+  if(sources && sources.length){
+    html += `<div class="sources">출처: ${sources.map(s => `<a href="${s.uri}" target="_blank">${s.title || s.uri}</a>`).join(' · ')}</div>`;
+  }
+  html += `<div class="timestamp">생성 시각: ${timestamp}</div>`;
+  document.getElementById('briefing-feed').innerHTML = html;
+}
+
+function loadCachedBriefing(){
+  const cache = JSON.parse(localStorage.getItem(BRIEFING_CACHE_KEY) || 'null');
+  if(cache && cache.date === todayStr()){
+    renderBriefing(cache.text, cache.sources, cache.timestamp);
+  } else {
+    document.getElementById('briefing-feed').innerHTML =
+      '<p class="muted">아직 오늘의 브리핑이 없습니다. 위의 API 키를 저장한 뒤 "오늘 브리핑 생성" 버튼을 눌러주세요.</p>';
+  }
+}
+
+async function generateBriefing(){
+  const key = getKey();
+  if(!key){
+    showBriefingError('먼저 위에서 Anthropic API 키를 입력하고 저장해주세요.');
+    return;
+  }
+  setBriefingLoading(true);
+  document.getElementById('briefing-error').innerHTML = '';
+  try{
+    const prompt = `오늘(${todayStr()}) 기준 데일리 브리핑을 한국어로 작성해줘. 반드시 아래 3개 섹션으로 구성하고, 각 섹션은 "## 제목" 형식의 헤더로 시작한 뒤 핵심 내용을 불릿(- )으로 2~4개 정리해줘.
+## 세계 시장 동향
+## 미국 중심 주요 뉴스
+## 관심 종목 (뉴스 여파로 상승했거나 상승 가능성이 있는 종목)
+실제 최신 정보를 검색해서 반영하고, 각 불릿은 사실 위주로 간결하게 1~2문장으로 작성해줘.`;
+
+    const data = await callClaude({
+      apiKey: key,
+      messages: [{ role: 'user', content: prompt }],
+      tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 5 }],
+      maxTokens: 2048
+    });
+
+    const blocks = data.content || [];
+    const text = blocks.filter(b => b.type === 'text').map(b => b.text).join('\n');
+    if(!text) throw new Error('응답에서 브리핑 내용을 찾을 수 없습니다.');
+
+    const sources = [];
+    blocks.filter(b => b.type === 'web_search_tool_result').forEach(b => {
+      (Array.isArray(b.content) ? b.content : []).forEach(c => {
+        if(c.type === 'web_search_result') sources.push({ uri: c.url, title: c.title });
+      });
+    });
+
+    const trimmedSources = sources.slice(0, 6);
+    const timestamp = new Date().toLocaleString('ko-KR');
+    localStorage.setItem(BRIEFING_CACHE_KEY, JSON.stringify({ date: todayStr(), text, sources: trimmedSources, timestamp }));
+    renderBriefing(text, trimmedSources, timestamp);
+  } catch(e){
+    showBriefingError(`브리핑 생성에 실패했습니다: ${e.message}`);
+  } finally {
+    setBriefingLoading(false);
+  }
+}
+
+loadCachedBriefing();
+
+/* ---------- Tasks / fixed schedule ---------- */
+function saveTasks(){ localStorage.setItem('sched-tasks', JSON.stringify(tasks)); }
+function saveFixed(){ localStorage.setItem('sched-fixed', JSON.stringify(fixed)); }
+
+function removeTask(id){ tasks = tasks.filter(t=>t.id!==id); saveTasks(); renderCalendar(); renderDayPanel(); }
+function removeFixed(id){ fixed = fixed.filter(f=>f.id!==id); saveFixed(); renderCalendar(); renderDayPanel(); }
+
+function execRemoveItem(args){
+  const name = (args.name || '').trim().toLowerCase();
+  if(!name) return null;
+  let removed = null;
+  const beforeT = tasks.length;
+  tasks = tasks.filter(t=>{
+    const match = t.name.trim().toLowerCase()===name && (!args.date || t.date===args.date);
+    if(match && !removed) removed = {type:'할일', name:t.name, date:t.date};
+    return !match;
+  });
+  if(tasks.length!==beforeT){ saveTasks(); return removed; }
+  const beforeF = fixed.length;
+  fixed = fixed.filter(f=>{
+    const match = f.name.trim().toLowerCase()===name && (!args.date || f.date===args.date);
+    if(match && !removed) removed = {type:'고정 일정', name:f.name, date:f.date};
+    return !match;
+  });
+  if(fixed.length!==beforeF){ saveFixed(); return removed; }
+  return null;
+}
+
+/* ---------- Calendar ---------- */
+let calCursor = nowInNY(); calCursor.setDate(1);
+let selectedDate = todayStr();
+
+function fmtDate(y,m,d){ return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
+
+function renderCalendar(){
+  const y = calCursor.getFullYear(), m = calCursor.getMonth();
+  const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('cal-label').textContent = `${MONTH_NAMES[m]} ${y}`;
+  const firstDow = new Date(y,m,1).getDay();
+  const daysInMonth = new Date(y,m+1,0).getDate();
+  const daysInPrevMonth = new Date(y,m,0).getDate();
+  const cells = [];
+  for(let i=0;i<firstDow;i++){
+    const d = daysInPrevMonth - firstDow + 1 + i;
+    const pm = m===0?11:m-1, py = m===0?y-1:y;
+    cells.push({date: fmtDate(py,pm,d), label:d, other:true});
+  }
+  for(let d=1; d<=daysInMonth; d++){
+    cells.push({date: fmtDate(y,m,d), label:d, other:false});
+  }
+  let extra = 1;
+  while(cells.length < 42){
+    const nm = m===11?0:m+1, ny = m===11?y+1:y;
+    cells.push({date: fmtDate(ny,nm,extra), label: extra, other:true});
+    extra++;
+  }
+  const dow = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  let html = dow.map(d=>`<div class="cal-dow">${d}</div>`).join('');
+  html += cells.map(c=>{
+    const hasFixed = fixed.some(f=>f.date===c.date);
+    const hasTask = tasks.some(t=>t.date===c.date);
+    let cls = 'cal-day';
+    if(c.other) cls+=' other-month';
+    if(c.date===todayStr()) cls+=' today';
+    if(c.date===selectedDate) cls+=' selected';
+    return `<div class="${cls}" onclick="selectDate('${c.date}')">
+      <span>${c.label}</span>
+      <div class="dots">${hasFixed?'<span class="dot fixed"></span>':''}${hasTask?'<span class="dot task"></span>':''}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('cal-grid').innerHTML = html;
+}
+function prevMonth(){ calCursor.setMonth(calCursor.getMonth()-1); renderCalendar(); }
+function nextMonth(){ calCursor.setMonth(calCursor.getMonth()+1); renderCalendar(); }
+function selectDate(d){
+  selectedDate = d; renderCalendar(); renderDayPanel();
+  const panel = document.querySelector('.day-panel');
+  if(panel) panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function renderDayPanel(){
+  document.getElementById('day-label').textContent = selectedDate;
+  const dFixed = fixed.filter(f=>f.date===selectedDate).sort((a,b)=>toMin(a.start)-toMin(b.start));
+  const dTasks = tasks.filter(t=>t.date===selectedDate);
+  const el = document.getElementById('day-items');
+  if(dFixed.length===0 && dTasks.length===0){
+    el.innerHTML = '<div class="muted" style="margin-bottom:8px">이 날짜에 등록된 일정이 없습니다.</div>';
+    return;
+  }
+  el.innerHTML = dFixed.map(f => `
+    <div class="item">
+      <span>${f.name}</span>
+      <span style="color:var(--text-secondary)">${f.start}-${f.end}</span>
+      <i class="ti ti-x del" onclick="removeFixed(${f.id})"></i>
+    </div>`).join('') + dTasks.map(t => `
+    <div class="item">
+      <span>${t.name}</span>
+      <span style="color:var(--text-secondary)">${t.hours}h</span>
+      <i class="ti ti-x del" onclick="removeTask(${t.id})"></i>
+    </div>`).join('');
+}
+
+function addDayTask(){
+  const name = document.getElementById('day-task-name').value.trim();
+  const hours = parseFloat(document.getElementById('day-task-hours').value);
+  if(!name || !hours) return;
+  tasks.push({id:nextId(), name, date:selectedDate, hours});
+  document.getElementById('day-task-name').value=''; document.getElementById('day-task-hours').value='';
+  saveTasks(); renderCalendar(); renderDayPanel();
+}
+function addDayFixed(){
+  const name = document.getElementById('day-fixed-name').value.trim();
+  const start = document.getElementById('day-fixed-start').value;
+  const end = document.getElementById('day-fixed-end').value;
+  if(!name || !start || !end) return;
+  fixed.push({id:nextId(), name, date:selectedDate, start, end});
+  document.getElementById('day-fixed-name').value='';
+  saveFixed(); renderCalendar(); renderDayPanel();
+}
+
+/* ---------- AI chat (task/event capture + news) ---------- */
+const CHAT_STORAGE = 'claude-chat-history';
+let chatHistory = JSON.parse(localStorage.getItem(CHAT_STORAGE) || '[]');
+
+const CLAUDE_TOOLS = [
+  { type: 'web_search_20250305', name: 'web_search', max_uses: 5 },
+  {
+    name: 'add_task',
+    description: '사용자가 처리해야 할 할일(과제, 업무 등 마감이 있는 작업)을 일정에 추가한다.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: '할일 이름' },
+        date: { type: 'string', description: '마감일, YYYY-MM-DD 형식' },
+        hours: { type: 'number', description: '예상 소요 시간(시간 단위)' }
+      },
+      required: ['name','date','hours']
+    }
+  },
+  {
+    name: 'add_fixed_event',
+    description: '사용자의 고정 일정(알바, 수업, 약속 등 정해진 시작/종료 시간이 있는 일정)을 추가한다.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: '일정 이름' },
+        date: { type: 'string', description: 'YYYY-MM-DD 형식' },
+        start: { type: 'string', description: '시작 시간 HH:MM (24시간제)' },
+        end: { type: 'string', description: '종료 시간 HH:MM (24시간제)' }
+      },
+      required: ['name','date','start','end']
+    }
+  },
+  {
+    name: 'remove_item',
+    description: '이름(및 선택적으로 날짜)이 일치하는 할일 또는 고정 일정을 삭제한다.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: '삭제할 항목 이름' },
+        date: { type: 'string', description: 'YYYY-MM-DD 형식 (선택)' }
+      },
+      required: ['name']
+    }
+  }
+];
+
+function escapeHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function appendChat(role, text){
+  const log = document.getElementById('chat-log');
+  const div = document.createElement('div');
+  div.className = 'chat-msg ' + role;
+  div.innerHTML = escapeHtml(text).replace(/\n/g,'<br>');
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+
+function loadChatHistory(){
+  const log = document.getElementById('chat-log');
+  log.innerHTML = '';
+  if(chatHistory.length===0){
+    log.innerHTML = '<div class="muted">아직 대화가 없습니다. 오늘 있었던 일이나 할일을 말해보세요.</div>';
+    return;
+  }
+  chatHistory.forEach(m => appendChat(m.role==='user' ? 'user' : 'ai', m.text));
+}
+
+function setChatLoading(loading){
+  document.getElementById('chat-send-btn').disabled = loading;
+  document.getElementById('chat-send-icon').className = loading ? 'ti ti-loader-2 spin' : 'ti ti-send';
+}
+
+function handleFunctionCall(fc){
+  const { name, args } = fc;
+  if(name === 'add_task'){
+    if(!args.name || !args.date || !args.hours) return null;
+    tasks.push({ id:nextId(), name:args.name, date:args.date, hours:Number(args.hours) });
+    saveTasks();
+    return `✅ 할일 추가: ${args.name} (${args.date}, ${args.hours}h)`;
+  }
+  if(name === 'add_fixed_event'){
+    if(!args.name || !args.date || !args.start || !args.end) return null;
+    fixed.push({ id:nextId(), name:args.name, date:args.date, start:args.start, end:args.end });
+    saveFixed();
+    return `✅ 고정 일정 추가: ${args.name} (${args.date} ${args.start}-${args.end})`;
+  }
+  if(name === 'remove_item'){
+    const removed = execRemoveItem(args);
+    return removed ? `🗑️ 삭제됨: ${removed.name} (${removed.date})` : `삭제할 항목을 찾지 못했습니다: ${args.name}`;
+  }
+  return null;
+}
+
+async function sendChat(){
+  const input = document.getElementById('chat-input');
+  const msg = input.value.trim();
+  if(!msg) return;
+  const key = getKey();
+  if(document.querySelector('#chat-log .muted')) document.getElementById('chat-log').innerHTML = '';
+  appendChat('user', msg);
+  chatHistory.push({ role:'user', text: msg });
+  input.value = '';
+  if(!key){
+    appendChat('ai', '먼저 위에서 Anthropic API 키를 입력하고 저장해주세요.');
+    return;
+  }
+  setChatLoading(true);
+  try{
+    const sys = `오늘 날짜는 ${todayStr()}입니다. 당신은 사용자의 개인 일정 비서입니다.
+- 사용자가 할일(마감이 있는 작업)을 말하면 add_task 도구를 호출하세요. 소요 시간이 언급되지 않으면 합리적으로 추정하세요.
+- 사용자가 고정 일정(수업, 알바, 약속 등 시작/종료 시간이 있는 일정)을 말하면 add_fixed_event 도구를 호출하세요.
+- 사용자가 일정 취소나 삭제를 요청하면 remove_item 도구를 호출하세요.
+- 상대적인 날짜 표현(내일, 다음주 화요일 등)은 오늘 날짜 기준 절대 날짜(YYYY-MM-DD)로 변환하세요.
+- 사용자가 뉴스, 시장 동향, 브리핑 등을 물으면 web_search 도구를 사용해 사실에 기반해 답하세요.
+- 도구를 호출했다면 무엇을 추가하거나 삭제했는지 한국어로 짧게 확인 메시지도 함께 말하세요.
+- 일정과 무관한 일반적인 대화에도 자연스럽게 응답하세요.`;
+
+    const data = await callClaude({
+      apiKey: key,
+      system: sys,
+      messages: chatHistory.slice(-20).map(m => ({ role: m.role === 'model' ? 'assistant' : 'user', content: m.text })),
+      tools: CLAUDE_TOOLS,
+      maxTokens: 1024
+    });
+
+    const blocks = data.content || [];
+    let replyText = '';
+    const actions = [];
+    for(const block of blocks){
+      if(block.type === 'tool_use'){
+        const result = handleFunctionCall({ name: block.name, args: block.input });
+        if(result) actions.push(result);
+      } else if(block.type === 'text'){
+        replyText += (replyText ? '\n' : '') + block.text;
+      }
+    }
+    const finalText = [actions.join('\n'), replyText].filter(Boolean).join('\n\n') || '(응답을 이해하지 못했습니다. 다시 말씀해주세요.)';
+    chatHistory.push({ role:'model', text: finalText });
+    if(chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
+    localStorage.setItem(CHAT_STORAGE, JSON.stringify(chatHistory));
+    appendChat('ai', finalText);
+    renderCalendar(); renderDayPanel();
+  } catch(e){
+    appendChat('ai', `오류가 발생했습니다: ${e.message}`);
+  } finally {
+    setChatLoading(false);
+  }
+}
+
+function toMin(hhmm){ const [h,m] = hhmm.split(':').map(Number); return h*60+m; }
+function toHHMM(min){ const h = Math.floor(min/60)%24; const m = Math.round(min%60); return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0'); }
+function daysBetween(a,b){ return Math.max(1, Math.round((new Date(b)-new Date(a))/86400000)); }
+
+function renderSchedule(){
+  const today = todayStr();
+  let freeBlocks = [[9*60, 24*60]];
+  fixed.filter(f=>f.date===today).sort((a,b)=>toMin(a.start)-toMin(b.start)).forEach(f=>{
+    const s = toMin(f.start), e = toMin(f.end);
+    freeBlocks = freeBlocks.flatMap(([bs,be])=>{
+      if(e<=bs || s>=be) return [[bs,be]];
+      const out=[]; if(s>bs) out.push([bs,s]); if(e<be) out.push([e,be]); return out;
+    });
+  });
+
+  const dueTasks = tasks.filter(t=>t.date>=today).map(t=>{
+    const dl = daysBetween(today, t.date);
+    return Object.assign({}, t, {need: Math.min(t.hours, Math.round((t.hours/dl)*2)/2), daysLeft: dl});
+  }).sort((a,b)=>a.daysLeft-b.daysLeft);
+
+  const out = [];
+  const BUFFER = 10;
+  dueTasks.forEach(t=>{
+    let remaining = t.need*60;
+    for(let i=0;i<freeBlocks.length && remaining>0;i++){
+      let [bs,be] = freeBlocks[i];
+      if(be-bs<=BUFFER) continue;
+      const use = Math.min(remaining, be-bs-BUFFER);
+      if(use<=0) continue;
+      out.push({name:t.name, start:bs, end:bs+use, tag:t.daysLeft===1?'마감임박':'예정'});
+      freeBlocks[i] = [bs+use+BUFFER, be];
+      remaining -= use;
+    }
+  });
+
+  const el = document.getElementById('schedule-out');
+  if(out.length===0){
+    el.innerHTML = '<div class="muted">오늘 배정할 할일이 없거나 여유 시간이 부족합니다. 할일과 고정 일정을 추가해보세요.</div>';
+    return;
+  }
+  out.sort((a,b)=>a.start-b.start);
+  el.innerHTML = out.map(o => `
+    <div class="sched-row">
+      <span style="font-size:13px;color:var(--text-secondary);min-width:96px">${toHHMM(o.start)} - ${toHHMM(o.end)}</span>
+      <span style="font-size:13px;flex:1">${o.name}</span>
+      <span class="tag ${o.tag==='마감임박'?'urgent':'normal'}">${o.tag}</span>
+    </div>`).join('');
+}
+
+renderCalendar();
+renderDayPanel();
+loadChatHistory();
+</script>
+</body>
+</html>

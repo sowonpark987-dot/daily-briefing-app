@@ -78,6 +78,8 @@
   .item { display: flex; align-items: center; gap: 8px; padding: 9px 10px; background: var(--surface-1); border-radius: var(--radius); font-size: 13px; }
   .item span:first-child { flex: 1; }
   .item .del { cursor: pointer; color: var(--text-muted); padding: 4px; }
+  .item .check { width: 18px; height: 18px; flex-shrink: 0; accent-color: var(--accent); cursor: pointer; }
+  .item.done span:first-child { text-decoration: line-through; color: var(--text-muted); }
   .muted { font-size: 13px; color: var(--text-muted); }
   .sched-row { display: flex; align-items: center; gap: 10px; padding: 10px; background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); }
   .tag { font-size: 12px; padding: 2px 8px; border-radius: var(--radius); white-space: nowrap; }
@@ -101,6 +103,16 @@
   @keyframes spin { to { transform: rotate(360deg); } }
   .err-box { background: var(--danger-bg); color: var(--danger); padding: 10px 12px; border-radius: var(--radius); font-size: 13px; margin-top: 10px; }
   .timestamp { font-size: 12px; color: var(--text-muted); margin-top: 10px; }
+
+  .past-item { border-bottom: 0.5px solid var(--border); }
+  .past-item:last-child { border-bottom: none; }
+  .past-toggle {
+    width: 100%; display: flex; justify-content: space-between; align-items: center;
+    background: none; border: none; padding: 10px 4px; cursor: pointer; font-size: 13px; color: var(--text); height: auto;
+  }
+  .past-toggle:hover { background: var(--surface-1); }
+  .past-toggle .chevron-past { color: var(--text-muted); transition: transform 0.2s ease; }
+  .past-body { padding: 4px 4px 14px; }
 
   .cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
   .cal-header button { width: 40px; height: 40px; padding: 0; }
@@ -187,6 +199,11 @@
     <button class="full primary" id="briefing-btn" onclick="generateBriefing()"><i class="icon" id="briefing-icon">✨</i><span id="briefing-btn-label">오늘 브리핑 생성</span></button>
     <div id="briefing-feed" style="margin-top:12px"></div>
     <div id="briefing-error"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><i class="icon">🗂️</i>지난 브리핑</div>
+    <div id="past-briefings"></div>
   </div>
 
   <div class="card">
@@ -353,7 +370,23 @@ async function callClaude({ apiKey, system, messages, tools, maxTokens }){
 }
 
 /* ---------- Claude-powered briefing ---------- */
-const BRIEFING_CACHE_KEY = 'claude-briefing-cache';
+const BRIEFING_HISTORY_KEY = 'claude-briefing-history';
+
+function loadBriefingHistory(){
+  return JSON.parse(localStorage.getItem(BRIEFING_HISTORY_KEY) || '[]');
+}
+function saveBriefingEntry(entry){
+  let hist = loadBriefingHistory().filter(h => h.date !== entry.date);
+  hist.push(entry);
+  hist.sort((a, b) => b.date.localeCompare(a.date));
+  if(hist.length > 30) hist = hist.slice(0, 30);
+  localStorage.setItem(BRIEFING_HISTORY_KEY, JSON.stringify(hist));
+}
+(function migrateOldBriefingCache(){
+  if(localStorage.getItem(BRIEFING_HISTORY_KEY)) return;
+  const old = JSON.parse(localStorage.getItem('claude-briefing-cache') || 'null');
+  if(old && old.date && old.text) localStorage.setItem(BRIEFING_HISTORY_KEY, JSON.stringify([old]));
+})();
 
 function mdToHtml(text){
   const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -402,13 +435,43 @@ function renderBriefing(text, sources, timestamp){
 }
 
 function loadCachedBriefing(){
-  const cache = JSON.parse(localStorage.getItem(BRIEFING_CACHE_KEY) || 'null');
-  if(cache && cache.date === todayStr()){
-    renderBriefing(cache.text, cache.sources, cache.timestamp);
+  const today = loadBriefingHistory().find(h => h.date === todayStr());
+  if(today){
+    renderBriefing(today.text, today.sources, today.timestamp);
   } else {
     document.getElementById('briefing-feed').innerHTML =
       '<p class="muted">아직 오늘의 브리핑이 없습니다. 위의 API 키를 저장한 뒤 "오늘 브리핑 생성" 버튼을 눌러주세요.</p>';
   }
+  renderPastBriefings();
+}
+
+function renderPastBriefings(){
+  const hist = loadBriefingHistory().filter(h => h.date !== todayStr());
+  const el = document.getElementById('past-briefings');
+  if(hist.length === 0){
+    el.innerHTML = '<div class="muted">아직 지난 브리핑이 없습니다.</div>';
+    return;
+  }
+  el.innerHTML = hist.map(h => `
+    <div class="past-item">
+      <button class="past-toggle" onclick="togglePastBriefing('${h.date}')">
+        <span>${h.date}</span>
+        <i class="icon chevron-past" id="chev-${h.date}">›</i>
+      </button>
+      <div class="past-body" id="past-${h.date}" style="display:none">
+        <div class="briefing-body">${mdToHtml(h.text)}</div>
+        ${h.sources && h.sources.length ? `<div class="sources">출처: ${h.sources.map(s => `<a href="${s.uri}" target="_blank">${s.title || s.uri}</a>`).join(' · ')}</div>` : ''}
+        <div class="timestamp">생성 시각: ${h.timestamp}</div>
+      </div>
+    </div>`).join('');
+}
+
+function togglePastBriefing(date){
+  const body = document.getElementById(`past-${date}`);
+  const chev = document.getElementById(`chev-${date}`);
+  const showing = body.style.display !== 'none';
+  body.style.display = showing ? 'none' : 'block';
+  chev.style.transform = showing ? '' : 'rotate(90deg)';
 }
 
 async function generateBriefing(){
@@ -446,8 +509,9 @@ async function generateBriefing(){
 
     const trimmedSources = sources.slice(0, 6);
     const timestamp = new Date().toLocaleString('ko-KR');
-    localStorage.setItem(BRIEFING_CACHE_KEY, JSON.stringify({ date: todayStr(), text, sources: trimmedSources, timestamp }));
+    saveBriefingEntry({ date: todayStr(), text, sources: trimmedSources, timestamp });
     renderBriefing(text, trimmedSources, timestamp);
+    renderPastBriefings();
   } catch(e){
     showBriefingError(`브리핑 생성에 실패했습니다: ${e.message}`);
   } finally {
@@ -463,6 +527,19 @@ function saveFixed(){ localStorage.setItem('sched-fixed', JSON.stringify(fixed))
 
 function removeTask(id){ tasks = tasks.filter(t=>t.id!==id); saveTasks(); renderCalendar(); renderDayPanel(); }
 function removeFixed(id){ fixed = fixed.filter(f=>f.id!==id); saveFixed(); renderCalendar(); renderDayPanel(); }
+
+function toggleTaskDone(id){
+  const t = tasks.find(t => t.id === id);
+  if(!t) return;
+  t.done = !t.done;
+  saveTasks(); renderDayPanel();
+}
+function toggleFixedDone(id){
+  const f = fixed.find(f => f.id === id);
+  if(!f) return;
+  f.done = !f.done;
+  saveFixed(); renderDayPanel();
+}
 
 function execRemoveItem(args){
   const name = (args.name || '').trim().toLowerCase();
@@ -547,12 +624,14 @@ function renderDayPanel(){
     return;
   }
   el.innerHTML = dFixed.map(f => `
-    <div class="item">
+    <div class="item ${f.done ? 'done' : ''}">
+      <input type="checkbox" class="check" ${f.done ? 'checked' : ''} onchange="toggleFixedDone(${f.id})">
       <span>${f.name}</span>
       <span style="color:var(--text-secondary)">${f.start}-${f.end}</span>
       <i class="icon del" onclick="removeFixed(${f.id})">×</i>
     </div>`).join('') + dTasks.map(t => `
-    <div class="item">
+    <div class="item ${t.done ? 'done' : ''}">
+      <input type="checkbox" class="check" ${t.done ? 'checked' : ''} onchange="toggleTaskDone(${t.id})">
       <span>${t.name}</span>
       <span style="color:var(--text-secondary)">${t.hours}h</span>
       <i class="icon del" onclick="removeTask(${t.id})">×</i>
@@ -744,7 +823,7 @@ function renderSchedule(){
     });
   });
 
-  const dueTasks = tasks.filter(t=>t.date>=today).map(t=>{
+  const dueTasks = tasks.filter(t=>t.date>=today && !t.done).map(t=>{
     const dl = daysBetween(today, t.date);
     return Object.assign({}, t, {need: Math.min(t.hours, Math.round((t.hours/dl)*2)/2), daysLeft: dl});
   }).sort((a,b)=>a.daysLeft-b.daysLeft);
